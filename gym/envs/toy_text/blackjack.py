@@ -90,22 +90,28 @@ class BlackjackEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
+        # Internals of the environment, for debugging and learning support
+        info = {'done_reason': None, 'dealer_hand': None}
+
         if action:  # hit: add a card to players hand and return
             self.player.append(draw_card(self.np_random))
             if is_bust(self.player):
                 done = True
+                info['done_reason'] = 'bust'
                 reward = -1.
             else:
                 done = False
                 reward = 0.
         else:  # stick: play out the dealers hand, and score
             done = True
+            info['done_reason'] = 'stick'
             while sum_hand(self.dealer) < 17:
                 self.dealer.append(draw_card(self.np_random))
             reward = cmp(score(self.player), score(self.dealer))
             if self.natural and is_natural(self.player) and reward == 1.:
                 reward = 1.5
-        return self._get_obs(), reward, done, {}
+        info['dealer_hand'] = self.dealer
+        return self._get_obs(), reward, done, info
 
     def _get_obs(self):
         return (sum_hand(self.player), self.dealer[0], usable_ace(self.player))
